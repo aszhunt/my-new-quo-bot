@@ -19,71 +19,72 @@ warnings.filterwarnings("ignore")
 
 st.set_page_config(page_title="AXIOM TRADER", page_icon="🤖", layout="wide")
 
-FOLDS = 5          # walk-forward folds (automatic)
-PAYOUT = 0.85      # binary payout used for the equity curve (automatic)
-MIN_SIGNALS = 25   # minimum verified signals for a STRONG call
+SESSION_VER = "axiom-v3"   # old saved results from earlier versions are discarded automatically
+FOLDS = 4                  # walk-forward validation folds
+PAYOUT = 0.85              # payout used in the backtest equity curve
 
 # =====================================================================
-#  STYLE  (ultra-dark cyber HUD)
+#  STYLE  (ultra-dark surfaces, bright text everywhere)
 # =====================================================================
 CSS = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap');
+:root { --txt:#f4fcff; --txt2:#c6ecfa; --cy:#00f0ff; --gr:#00ff9c; --rd:#ff5c7a; --bg:#02040a; --pn:#050c1c; }
 html, body, [class*="css"], .stApp { font-family: 'Share Tech Mono', monospace; }
 .stApp {
   background:
     linear-gradient(rgba(0,240,255,0.03) 1px, transparent 1px) 0 0 / 42px 42px,
     linear-gradient(90deg, rgba(0,240,255,0.03) 1px, transparent 1px) 0 0 / 42px 42px,
     radial-gradient(ellipse at 20% 0%, #06142a 0%, #02040a 55%, #010208 100%);
-  color: #e9fbff;
 }
 #MainMenu, footer { visibility: hidden; }
 header[data-testid="stHeader"] { background: transparent; }
-section[data-testid="stSidebar"] { border-right: 1px solid rgba(0,240,255,0.25); }
 h1, h2, h3, h4 { font-family: 'Orbitron', sans-serif !important; letter-spacing: 2px; }
+
 .title-wrap { position: relative; padding: 14px 22px; margin-bottom: 14px;
-  border: 1px solid rgba(0,240,255,0.35); border-radius: 14px;
-  background: linear-gradient(120deg, rgba(0,240,255,0.07), rgba(255,43,214,0.05));
+  border: 1px solid rgba(0,240,255,0.4); border-radius: 14px; background: #050c1c;
   box-shadow: 0 0 28px rgba(0,240,255,0.12) inset, 0 0 22px rgba(0,240,255,0.12); overflow: hidden; }
 .title-wrap:after { content:''; position:absolute; left:0; right:0; height:2px; top:0;
   background: linear-gradient(90deg, transparent, #00f0ff, transparent); animation: scan 3.2s linear infinite; }
 @keyframes scan { 0% { top: 0; opacity: .9 } 100% { top: 100%; opacity: .1 } }
 .title { font-family:'Orbitron',sans-serif; font-weight:900; font-size:32px; letter-spacing:8px;
-  background: linear-gradient(90deg,#00f0ff,#7b5cff,#ff2bd6); -webkit-background-clip:text;
-  -webkit-text-fill-color: transparent; }
-.sub { color:#6fb7d6; font-size:13px; letter-spacing:3px; }
+  background: linear-gradient(90deg,#00f0ff,#8f7bff,#ff6be6); -webkit-background-clip:text; background-clip:text;
+  -webkit-text-fill-color: transparent !important; }
+.sub { color:#c6ecfa !important; font-size:13px; letter-spacing:3px; }
 .dot { display:inline-block; width:9px; height:9px; border-radius:50%; background:#00ff9c;
   box-shadow:0 0 10px #00ff9c; margin-right:8px; animation: pulse 1.4s infinite; }
-@keyframes pulse { 0%,100% { opacity:1 } 50% { opacity:.25 } }
-.hud { border:1px solid rgba(0,240,255,0.3); border-radius:12px; padding:12px 16px;
-  background: #050c1c; box-shadow: 0 0 16px rgba(0,240,255,0.1); }
-.hud .k { color:#5fa8c8; font-size:11px; letter-spacing:3px; }
-.hud .v { font-family:'Orbitron',sans-serif; font-size:21px; color:#e9fbff; margin-top:4px; }
-.hud .d { font-size:12px; margin-top:2px; }
-.up { color:#00ff9c !important; } .dn { color:#ff3b5c !important; } .nt { color:#8fb8d0 !important; }
-.card { border:1px solid rgba(0,240,255,0.3); border-radius:14px; padding:14px 16px; margin-bottom:14px;
-  background: linear-gradient(160deg, #06112a, #030814); position:relative; }
-.card.strong-buy { border-color:#00ff9c; box-shadow:0 0 22px rgba(0,255,156,0.28); }
-.card.strong-sell { border-color:#ff3b5c; box-shadow:0 0 22px rgba(255,59,92,0.28); }
-.card .tf { font-family:'Orbitron',sans-serif; font-size:13px; color:#6fb7d6; letter-spacing:3px; }
-.card .sig { font-family:'Orbitron',sans-serif; font-size:19px; font-weight:700; margin:6px 0 10px 0; }
-.sig.b { color:#00ff9c; text-shadow:0 0 12px rgba(0,255,156,.6); }
-.sig.s { color:#ff3b5c; text-shadow:0 0 12px rgba(255,59,92,.6); }
-.sig.w { color:#8fb8d0; }
-.bar { height:9px; border-radius:6px; background:#ff3b5c; overflow:hidden; }
+@keyframes pulse { 0%,100% { opacity:1 } 50% { opacity:.3 } }
+
+.hud { border:1px solid rgba(0,240,255,0.4); border-radius:12px; padding:12px 16px; margin-bottom:10px;
+  background:#050c1c; box-shadow: 0 0 16px rgba(0,240,255,0.1); }
+.hud .k { color:#c6ecfa !important; font-size:12px; letter-spacing:3px; }
+.hud .v { font-family:'Orbitron',sans-serif; font-size:21px; color:#f4fcff !important; margin-top:4px; }
+.hud .d { font-size:13px; margin-top:3px; color:#c6ecfa; }
+.up { color:#00ff9c !important; } .dn { color:#ff5c7a !important; } .nt { color:#c6ecfa !important; }
+
+.card { border:1px solid rgba(0,240,255,0.4); border-radius:14px; padding:14px 16px; margin-bottom:14px; background:#050c1c; }
+.card.strong-buy { border-color:#00ff9c; box-shadow:0 0 22px rgba(0,255,156,0.3); }
+.card.strong-sell { border-color:#ff5c7a; box-shadow:0 0 22px rgba(255,92,122,0.3); }
+.card .tf { font-family:'Orbitron',sans-serif; font-size:13px; color:#c6ecfa !important; letter-spacing:3px; }
+.card .sig { font-family:'Orbitron',sans-serif; font-size:20px; font-weight:700; margin:6px 0 10px 0; }
+.sig.b { color:#00ff9c !important; } .sig.s { color:#ff5c7a !important; } .sig.w { color:#f4fcff !important; }
+.bar { height:10px; border-radius:6px; background:#ff5c7a; overflow:hidden; }
 .bar .fill { height:100%; background:linear-gradient(90deg,#00b36e,#00ff9c); }
-.pl { display:flex; justify-content:space-between; font-size:12px; margin-top:5px; color:#9fc5d9; }
-.meta { margin-top:10px; font-size:12px; color:#7fb0c8; line-height:1.7; }
-.meta b { color:#e9fbff; }
-.news { border-left:2px solid #00f0ff; padding:6px 12px; margin:6px 0; background:#050c1c; font-size:13px; }
-.stButton button { font-family:'Orbitron',sans-serif; letter-spacing:3px; font-weight:700;
-  border:1px solid #00f0ff; background:#06142a !important; color:#00f0ff !important; }
-.stButton button p { color:#00f0ff !important; }
-.stButton button:hover { box-shadow:0 0 20px rgba(0,240,255,.5); border-color:#fff; }
+.pl { display:flex; justify-content:space-between; font-size:13px; margin-top:5px; color:#f4fcff; }
+.meta { margin-top:10px; font-size:13px; color:#c6ecfa; line-height:1.8; }
+.meta b { color:#f4fcff; }
+.meta .g { color:#00ff9c; } .meta .r { color:#ff5c7a; }
+.news { border-left:3px solid #00f0ff; padding:8px 14px; margin:6px 0; background:#050c1c; font-size:14px; color:#f4fcff; }
+
+.tblwrap { overflow-x:auto; }
+.tbl { width:100%; border-collapse:collapse; margin:6px 0 16px; }
+.tbl th { background:#071a33; color:#00f0ff !important; text-align:left; padding:9px 12px;
+  font-family:'Orbitron',sans-serif; font-size:12px; letter-spacing:2px; border-bottom:1px solid #0e4468; }
+.tbl td { background:#050c1c; color:#f4fcff !important; padding:9px 12px; border-bottom:1px solid #0e2a44; font-size:14px; }
 
 /* ---------- BOOT ANIMATION ---------- */
 .boot { position:relative; display:flex; flex-direction:column; align-items:center; padding:34px 10px 26px;
-  margin:10px 0 20px; border:1px solid rgba(0,240,255,.4); border-radius:16px; overflow:hidden;
+  margin:10px 0 20px; border:1px solid rgba(0,240,255,.45); border-radius:16px; overflow:hidden;
   background: radial-gradient(circle at 50% 28%, #07182f, #02040a 72%);
   box-shadow: 0 0 40px rgba(0,240,255,.18) inset, 0 0 30px rgba(0,240,255,.12); }
 .radar { position:relative; width:190px; height:190px; border-radius:50%;
@@ -99,47 +100,51 @@ h1, h2, h3, h4 { font-family: 'Orbitron', sans-serif !important; letter-spacing:
 @keyframes blink { 0%,100% { opacity:1; transform:scale(1) } 50% { opacity:.15; transform:scale(.5) } }
 .core { position:absolute; inset:76px; border-radius:50%; background:#031427; border:1px solid #00f0ff;
   display:flex; align-items:center; justify-content:center; font-family:'Orbitron',sans-serif; font-weight:900;
-  color:#00f0ff; box-shadow:0 0 18px rgba(0,240,255,.6); animation: pulse 1.2s infinite; }
+  color:#00f0ff !important; box-shadow:0 0 18px rgba(0,240,255,.6); animation: pulse 1.2s infinite; }
 .bt { margin-top:20px; font-family:'Orbitron',sans-serif; font-weight:900; font-size:30px; letter-spacing:10px;
-  color:#00f0ff; text-shadow: 2px 0 #ff2bd6, -2px 0 #7b5cff; animation: glitch 2.2s infinite; }
+  color:#00f0ff !important; text-shadow: 2px 0 #ff6be6, -2px 0 #8f7bff; animation: glitch 2.2s infinite; }
 @keyframes glitch { 0%,92%,100% { transform:translateX(0) } 94% { transform:translateX(-4px) skewX(6deg) }
   96% { transform:translateX(4px) skewX(-6deg) } 98% { transform:translateX(-2px) } }
-.bs { margin-top:8px; color:#9fe8ff; font-size:14px; letter-spacing:2px; }
+.bs { margin-top:8px; color:#e6f9ff !important; font-size:14px; letter-spacing:2px; }
 .bs:after { content:'_'; animation: blink 0.8s infinite; }
 .eq { display:flex; gap:4px; align-items:flex-end; height:34px; margin-top:16px; }
-.eq i { display:block; width:6px; background:linear-gradient(180deg,#00f0ff,#7b5cff); border-radius:2px;
+.eq i { display:block; width:6px; background:linear-gradient(180deg,#00f0ff,#8f7bff); border-radius:2px;
   animation: eqb 0.9s ease-in-out infinite; transform-origin: bottom; }
 @keyframes eqb { 0%,100% { transform:scaleY(.25) } 50% { transform:scaleY(1) } }
 .pbar { width:60%; max-width:520px; height:6px; border-radius:4px; background:#0a1a33; margin-top:16px; overflow:hidden; }
-.pbar div { height:100%; background:linear-gradient(90deg,#00f0ff,#ff2bd6); box-shadow:0 0 12px #00f0ff; }
+.pbar div { height:100%; background:linear-gradient(90deg,#00f0ff,#ff6be6); box-shadow:0 0 12px #00f0ff; }
 
-/* ---------- FORCE ULTRA-DARK EVERYWHERE ---------- */
+/* ---------- ULTRA-DARK SURFACES + BRIGHT TEXT EVERYWHERE ---------- */
 html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"],
 [data-testid="stMainBlockContainer"], .main, .block-container { background-color: #02040a !important; }
-[data-testid="stSidebar"], [data-testid="stSidebar"] > div { background: #03060f !important; }
+[data-testid="stSidebar"], [data-testid="stSidebar"] > div { background: #03060f !important;
+  border-right: 1px solid rgba(0,240,255,0.3); }
 .stApp p, .stApp span, .stApp label, .stApp li, .stApp h1, .stApp h2, .stApp h3, .stApp h4,
 .stApp div[data-testid="stMarkdownContainer"], .stApp small,
-[data-testid="stWidgetLabel"] p, [data-testid="stCaptionContainer"] { color: #e9fbff !important; }
+[data-testid="stWidgetLabel"] p, [data-testid="stCaptionContainer"], [data-testid="stCaptionContainer"] p {
+  color: #f4fcff !important; }
 .title { -webkit-text-fill-color: transparent !important; }
-.up { color:#00ff9c !important; } .dn { color:#ff3b5c !important; } .nt { color:#8fb8d0 !important; }
+.up { color:#00ff9c !important; } .dn { color:#ff5c7a !important; } .nt { color:#c6ecfa !important; }
+.sig.b { color:#00ff9c !important; } .sig.s { color:#ff5c7a !important; }
+.meta .g { color:#00ff9c !important; } .meta .r { color:#ff5c7a !important; }
 div[data-baseweb="select"] > div, div[data-baseweb="input"], div[data-baseweb="base-input"], input, textarea {
-  background-color: #050a18 !important; color: #e9fbff !important; border-color: rgba(0,240,255,0.35) !important; }
-div[data-baseweb="select"] span, div[data-baseweb="select"] div { color: #e9fbff !important; }
+  background-color: #050a18 !important; color: #f4fcff !important; border-color: rgba(0,240,255,0.45) !important; }
+div[data-baseweb="select"] span, div[data-baseweb="select"] div { color: #f4fcff !important; }
 div[data-baseweb="select"] svg { fill: #00f0ff !important; }
 div[data-baseweb="popover"], div[data-baseweb="popover"] > div, div[data-baseweb="menu"],
-ul[role="listbox"], li[role="option"] { background-color: #050a18 !important; color: #e9fbff !important; }
-li[role="option"]:hover, li[aria-selected="true"] { background-color: #0a2040 !important; }
-div[data-baseweb="tab-list"] { background: #02040a !important; border-bottom: 1px solid rgba(0,240,255,0.25); }
-button[data-baseweb="tab"] { background: transparent !important; color: #8fb8d0 !important;
+ul[role="listbox"], li[role="option"] { background-color: #050a18 !important; color: #f4fcff !important; }
+li[role="option"]:hover, li[aria-selected="true"] { background-color: #0a2a4a !important; }
+div[data-baseweb="tab-list"] { background: #02040a !important; border-bottom: 1px solid rgba(0,240,255,0.3); }
+button[data-baseweb="tab"] { background: transparent !important; color: #c6ecfa !important;
   font-family:'Orbitron',sans-serif; letter-spacing:2px; }
 button[data-baseweb="tab"][aria-selected="true"] { color: #00f0ff !important; }
-div[data-testid="stMetric"] { background:#050c1c; border:1px solid rgba(0,240,255,0.25); border-radius:12px; padding:10px 14px; }
-div[data-testid="stMetricLabel"] p { color: #6fb7d6 !important; }
-div[data-testid="stMetricValue"] { color: #e9fbff !important; }
-div[data-testid="stDataFrame"], div[data-testid="stDataFrame"] > div, [data-testid="stTable"] { background: #050a18 !important; }
-div[data-testid="stAlert"] { background: #07142a !important; border: 1px solid rgba(0,240,255,0.35); }
+.stButton button { font-family:'Orbitron',sans-serif; letter-spacing:3px; font-weight:700;
+  border:1px solid #00f0ff; background:#06142a !important; color:#00f0ff !important; }
+.stButton button p { color:#00f0ff !important; }
+.stButton button:hover { box-shadow:0 0 20px rgba(0,240,255,.5); border-color:#ffffff; }
+div[data-testid="stAlert"] { background: #07142a !important; border: 1px solid rgba(0,240,255,0.4); }
 ::-webkit-scrollbar { background: #02040a; width: 10px; }
-::-webkit-scrollbar-thumb { background: #0a2a4a; border-radius: 6px; }
+::-webkit-scrollbar-thumb { background: #0e3a5c; border-radius: 6px; }
 </style>
 """
 st.markdown(CSS, unsafe_allow_html=True)
@@ -200,18 +205,19 @@ def flat_cols(df):
     return df
 
 
-def wilson_lb(k, n, z=1.64):
-    if n == 0:
-        return 0.0
-    p = k / n
-    denom = 1 + z * z / n
-    centre = p + z * z / (2 * n)
-    adj = z * np.sqrt(p * (1 - p) / n + z * z / (4 * n * n))
-    return float((centre - adj) / denom)
+def fmt_price(x):
+    x = float(x)
+    if x >= 1000:
+        return f"{x:,.2f}"
+    if x >= 100:
+        return f"{x:,.3f}"
+    if x >= 10:
+        return f"{x:,.4f}"
+    return f"{x:,.5f}"
 
 
 # =====================================================================
-#  DATA  (price/volume + macro/fundamental context)
+#  DATA
 # =====================================================================
 @st.cache_data(ttl=30, show_spinner=False)
 def load_data(ticker, interval, rule, period):
@@ -226,9 +232,23 @@ def load_data(ticker, interval, rule, period):
     return df
 
 
+@st.cache_data(ttl=15, show_spinner=False)
+def load_live(ticker):
+    """Latest traded price from the 1-minute feed."""
+    try:
+        d = yf.download(ticker, interval="1m", period="1d", progress=False,
+                        auto_adjust=False, threads=False)
+        if d is None or d.empty:
+            return None
+        c = flat_cols(d)["Close"].dropna()
+        return float(c.iloc[-1]), str(to_utc(c.index[-1]))
+    except Exception:
+        return None
+
+
 @st.cache_data(ttl=900, show_spinner=False)
 def load_macro():
-    """Daily intermarket / fundamental drivers: Dollar Index, US 10Y yield, VIX, S&P 500."""
+    """Daily fundamental drivers: Dollar Index, US 10Y yield, VIX, S&P 500."""
     syms = {"dxy": "DX-Y.NYB", "tnx": "^TNX", "vix": "^VIX", "spx": "^GSPC"}
     out = {}
     for k, s in syms.items():
@@ -257,7 +277,7 @@ def macro_feature_frame(macro):
         f[f"{k}_dev10"] = df[k] / df[k].rolling(10).mean() - 1
     if "vix" in df.columns:
         f["vix_level"] = df["vix"] / 20.0
-    return f.shift(1)       # a day only sees PREVIOUS day's data (no look-ahead)
+    return f.shift(1)       # a day only sees the PREVIOUS day's data
 
 
 @st.cache_data(ttl=600, show_spinner=False)
@@ -279,7 +299,6 @@ def load_news(ticker):
 
 
 def macro_summary(macro):
-    """Latest level, 1-day change %, and trend vs 10-day average for the pulse tiles."""
     rows = {}
     for k, s in (macro or {}).items():
         if len(s) < 12:
@@ -291,17 +310,16 @@ def macro_summary(macro):
 
 
 def fundamental_bias(label, ticker, ms):
-    """Simple, transparent macro bias for the selected asset."""
     if not ms:
-        return "NEUTRAL", "nt", "Macro feed loading"
+        return "NEUTRAL", "nt", "Macro data loading"
     dxy = ms.get("dxy", {}).get("dev", 0.0)
     tnx = ms.get("tnx", {}).get("dev", 0.0)
     spx = ms.get("spx", {}).get("dev", 0.0)
     vix = ms.get("vix", {}).get("dev", 0.0)
-    if ticker.endswith("-USD"):                      # crypto: risk-on / risk-off
+    if ticker.endswith("-USD"):
         score = (1 if spx > 0 else -1) + (1 if vix < 0 else -1)
         why = "Risk sentiment (S&P 500 + VIX)"
-    elif ticker in ("GC=F", "SI=F"):                 # metals: weaker USD / yields help
+    elif ticker in ("GC=F", "SI=F"):
         score = (1 if dxy < 0 else -1) + (1 if tnx < 0 else -1)
         why = "Dollar Index + US 10Y yield"
     elif label.startswith("USD/"):
@@ -320,10 +338,301 @@ def fundamental_bias(label, ticker, ms):
 
 
 # =====================================================================
-#  FEATURES  (100+: technical + volume + multi-timeframe + macro + session)
+#  INDICATOR VOTE BANK  (1500+ parameterised indicator variants)
+#  every variant votes +1 (BUY), -1 (SELL) or 0 (NEUTRAL) on every candle
+# =====================================================================
+def sgn(x):
+    a = np.asarray(x, dtype=float)
+    a = np.nan_to_num(a, nan=0.0, posinf=0.0, neginf=0.0)
+    return np.sign(a).astype(np.int8)
+
+
+def true_range(df):
+    c = df["Close"]
+    return pd.concat([df["High"] - df["Low"], (df["High"] - c.shift()).abs(),
+                      (df["Low"] - c.shift()).abs()], axis=1).max(axis=1)
+
+
+def supertrend(df, p, m):
+    h, l, c = df["High"].values, df["Low"].values, df["Close"].values
+    atr = true_range(df).ewm(alpha=1 / p, adjust=False).mean().values
+    hl2 = (h + l) / 2
+    ub, lb = hl2 + m * atr, hl2 - m * atr
+    fub, flb = ub.copy(), lb.copy()
+    trend = np.ones(len(c))
+    for i in range(1, len(c)):
+        fub[i] = ub[i] if (ub[i] < fub[i - 1] or c[i - 1] > fub[i - 1]) else fub[i - 1]
+        flb[i] = lb[i] if (lb[i] > flb[i - 1] or c[i - 1] < flb[i - 1]) else flb[i - 1]
+        if trend[i - 1] == 1 and c[i] < flb[i]:
+            trend[i] = -1
+        elif trend[i - 1] == -1 and c[i] > fub[i]:
+            trend[i] = 1
+        else:
+            trend[i] = trend[i - 1]
+    return trend
+
+
+def indicator_bank(df):
+    """Return (votes matrix n x m int8, family name per column)."""
+    o, h, l, c, v = df["Open"], df["High"], df["Low"], df["Close"], df["Volume"]
+    n = len(df)
+    cols, fams = [], []
+
+    def add(fam, arr):
+        cols.append(sgn(arr))
+        fams.append(fam)
+
+    sma_cache, ema_cache = {}, {}
+
+    def S(p):
+        if p not in sma_cache:
+            sma_cache[p] = c.rolling(p).mean()
+        return sma_cache[p]
+
+    def E(p):
+        if p not in ema_cache:
+            ema_cache[p] = c.ewm(span=p, adjust=False).mean()
+        return ema_cache[p]
+
+    tr = true_range(df)
+    tp = (h + l + c) / 3
+
+    # --- moving averages -------------------------------------------------
+    for p in range(3, 203, 2):
+        add("SMA price", c - S(p))
+        add("EMA price", c - E(p))
+    for f in range(2, 22, 2):
+        for s in range(20, 201, 20):
+            if f < s:
+                add("SMA cross", S(f) - S(s))
+                add("EMA cross", E(f) - E(s))
+
+    # --- oscillators -----------------------------------------------------
+    for p in range(2, 51):
+        d = c.diff()
+        up = d.clip(lower=0).ewm(alpha=1 / p, adjust=False).mean()
+        dn = (-d.clip(upper=0)).ewm(alpha=1 / p, adjust=False).mean()
+        rsi = 100 - 100 / (1 + up / dn.replace(0, np.nan))
+        add("RSI trend", rsi - 50)
+        add("RSI reversal", np.where(rsi < 30, 1, np.where(rsi > 70, -1, 0)))
+    for p in range(3, 41):
+        ll, hh = l.rolling(p).min(), h.rolling(p).max()
+        rng = (hh - ll).replace(0, np.nan)
+        k = 100 * (c - ll) / rng
+        add("Stochastic reversal", np.where(k < 20, 1, np.where(k > 80, -1, 0)))
+        add("Stochastic cross", k - k.rolling(3).mean())
+        wr = -100 * (hh - c) / rng
+        add("Williams %R reversal", np.where(wr < -80, 1, np.where(wr > -20, -1, 0)))
+        add("Williams %R trend", wr + 50)
+    for p in range(5, 61):
+        dev = tp.rolling(p).std().replace(0, np.nan)
+        cci = (tp - tp.rolling(p).mean()) / (0.015 * 1.25 * dev)
+        add("CCI trend", cci)
+        add("CCI reversal", np.where(cci < -100, 1, np.where(cci > 100, -1, 0)))
+        add("ROC", c.pct_change(p))
+        z = (c - c.rolling(p).mean()) / c.rolling(p).std().replace(0, np.nan)
+        add("Z-score reversal", np.where(z < -1.5, 1, np.where(z > 1.5, -1, 0)))
+
+    # --- MACD / TRIX / Awesome -------------------------------------------
+    for f in (3, 5, 8, 12, 16):
+        for s in (13, 21, 26, 34, 50):
+            if f >= s:
+                continue
+            m = E(f) - E(s)
+            for sg in (5, 9, 13):
+                add("MACD histogram", m - m.ewm(span=sg, adjust=False).mean())
+            add("MACD line", m)
+    for p in range(5, 31):
+        e3 = c.ewm(span=p, adjust=False).mean().ewm(span=p, adjust=False).mean().ewm(span=p, adjust=False).mean()
+        add("TRIX", e3.pct_change())
+    mp = (h + l) / 2
+    for f in (3, 5, 8):
+        for s in (21, 34, 55):
+            add("Awesome oscillator", mp.rolling(f).mean() - mp.rolling(s).mean())
+
+    # --- bands / channels --------------------------------------------------
+    for w in (10, 15, 20, 30, 40, 50):
+        mid, sd = S(w), c.rolling(w).std()
+        for k in (1.5, 2, 2.5, 3):
+            add("Bollinger reversal", np.where(c < mid - k * sd, 1, np.where(c > mid + k * sd, -1, 0)))
+    for p in range(5, 61):
+        hh, ll = h.rolling(p).max(), l.rolling(p).min()
+        add("Donchian breakout", np.where(c > hh.shift(1), 1, np.where(c < ll.shift(1), -1, 0)))
+        add("Channel position", (c - ll) / (hh - ll).replace(0, np.nan) - 0.5)
+    for p in (10, 20, 30):
+        atr = tr.ewm(alpha=1 / p, adjust=False).mean()
+        for m in (1, 1.5, 2):
+            add("Keltner reversal", np.where(c < E(p) - m * atr, 1, np.where(c > E(p) + m * atr, -1, 0)))
+
+    # --- directional movement --------------------------------------------
+    up_m, dn_m = h.diff(), -l.diff()
+    plus = pd.Series(np.where((up_m > dn_m) & (up_m > 0), up_m, 0.0), index=df.index)
+    minus = pd.Series(np.where((dn_m > up_m) & (dn_m > 0), dn_m, 0.0), index=df.index)
+    for p in range(5, 41):
+        atr = tr.ewm(alpha=1 / p, adjust=False).mean().replace(0, np.nan)
+        pdi = plus.ewm(alpha=1 / p, adjust=False).mean() / atr
+        mdi = minus.ewm(alpha=1 / p, adjust=False).mean() / atr
+        add("DI trend", pdi - mdi)
+
+    # --- volume ------------------------------------------------------------
+    obv = (np.sign(c.diff()).fillna(0) * v).cumsum()
+    pos_flow = (tp * v).where(tp > tp.shift(), 0.0)
+    neg_flow = (tp * v).where(tp < tp.shift(), 0.0)
+    mfv = ((c - l) - (h - c)) / (h - l).replace(0, np.nan) * v
+    fi = c.diff() * v
+    for p in range(3, 41):
+        add("OBV slope", obv.diff(p))
+    for p in range(5, 41):
+        mfr = pos_flow.rolling(p).sum() / neg_flow.rolling(p).sum().replace(0, np.nan)
+        mfi = 100 - 100 / (1 + mfr)
+        add("MFI trend", mfi - 50)
+        add("MFI reversal", np.where(mfi < 20, 1, np.where(mfi > 80, -1, 0)))
+        add("Chaikin money flow", mfv.rolling(p).sum() / v.rolling(p).sum().replace(0, np.nan))
+        add("Rolling VWAP", c - (tp * v).rolling(p).sum() / v.rolling(p).sum().replace(0, np.nan))
+    for p in range(3, 31):
+        add("Force index", fi.ewm(span=p, adjust=False).mean())
+
+    # --- Ichimoku / Supertrend / regression / Heikin-Ashi / pivots ----------
+    for t in (5, 7, 9, 12):
+        ten = (h.rolling(t).max() + l.rolling(t).min()) / 2
+        for k in (20, 26, 34, 52):
+            kij = (h.rolling(k).max() + l.rolling(k).min()) / 2
+            add("Ichimoku", ten - kij)
+            add("Ichimoku", c - kij)
+    for p in (7, 10, 14, 21):
+        for m in (1.5, 2, 3):
+            add("Supertrend", supertrend(df, p, m))
+    cv = c.values
+    for p in range(5, 61):
+        x = np.arange(p, dtype=float)
+        xc = x - x.mean()
+        slope = np.convolve(cv, xc[::-1], mode="valid") / (xc ** 2).sum()
+        add("Regression slope", np.r_[np.full(p - 1, np.nan), slope])
+    ha_c = (o + h + l + c) / 4
+    ha_o = (o.shift() + c.shift()) / 2
+    add("Heikin-Ashi", ha_c - ha_o)
+    for p in (2, 3, 5):
+        add("Heikin-Ashi", np.sign(ha_c - ha_o).rolling(p).sum())
+    add("Pivot points", c - (h.shift() + l.shift() + c.shift()) / 3)
+    for p in (5, 10, 20, 50):
+        add("Pivot points", c - (h.rolling(p).max().shift() + l.rolling(p).min().shift() + c.shift()) / 3)
+
+    # --- candle patterns ---------------------------------------------------
+    body, ab = c - o, (c - o).abs()
+    rg = (h - l).replace(0, np.nan)
+    uw, lw = h - np.maximum(o, c), np.minimum(o, c) - l
+    b1, b2 = body.shift(), body.shift(2)
+    add("Candle patterns", ((b1 < 0) & (body > 0) & (c >= o.shift()) & (o <= c.shift())).astype(int)
+        - ((b1 > 0) & (body < 0) & (c <= o.shift()) & (o >= c.shift())).astype(int))
+    add("Candle patterns", ((lw > 2 * ab) & (uw < 0.5 * ab) & (ab > 0)).astype(int)
+        - ((uw > 2 * ab) & (lw < 0.5 * ab) & (ab > 0)).astype(int))
+    add("Candle patterns", ((body > 0) & (b1 > 0) & (b2 > 0) & (c > c.shift()) & (c.shift() > c.shift(2))).astype(int)
+        - ((body < 0) & (b1 < 0) & (b2 < 0) & (c < c.shift()) & (c.shift() < c.shift(2))).astype(int))
+    add("Candle patterns", (ab / rg > 0.9) * np.sign(body))
+    add("Candle patterns", ((b1 < 0) & (body > 0) & (c < o.shift()) & (o > c.shift()) & (ab < ab.shift() * 0.6)).astype(int)
+        - ((b1 > 0) & (body < 0) & (c > o.shift()) & (o < c.shift()) & (ab < ab.shift() * 0.6)).astype(int))
+    add("Candle patterns", ((b1 < 0) & (body > 0) & (o < c.shift()) & (c > (o.shift() + c.shift()) / 2) & (c < o.shift())).astype(int)
+        - ((b1 > 0) & (body < 0) & (o > c.shift()) & (c < (o.shift() + c.shift()) / 2) & (c > o.shift())).astype(int))
+    add("Candle patterns", ((b2 < 0) & (ab.shift() < ab.shift(2) * 0.4) & (body > 0) & (c > (o.shift(2) + c.shift(2)) / 2)).astype(int)
+        - ((b2 > 0) & (ab.shift() < ab.shift(2) * 0.4) & (body < 0) & (c < (o.shift(2) + c.shift(2)) / 2)).astype(int))
+    add("Candle patterns", (c - l) / rg - 0.5)
+
+    V = np.column_stack(cols).astype(np.int8)
+    return V, fams
+
+
+def family_features(V, fams):
+    """Aggregate the vote bank into compact ML features (one per family + totals)."""
+    fams = np.array(fams)
+    out = {}
+    for f in sorted(set(fams)):
+        out["fam_" + f.lower().replace(" ", "_").replace("%", "pct").replace("-", "_")] = V[:, fams == f].mean(axis=1)
+    m = V.shape[1]
+    out["vote_buy_share"] = (V > 0).sum(axis=1) / m
+    out["vote_sell_share"] = (V < 0).sum(axis=1) / m
+    out["vote_net"] = out["vote_buy_share"] - out["vote_sell_share"]
+    return pd.DataFrame(out)
+
+
+def vote_summary(V_last, fams):
+    fams = np.array(fams)
+    rows = []
+    for f in sorted(set(fams)):
+        seg = V_last[fams == f]
+        rows.append({"family": f, "total": int(len(seg)), "buy": int((seg > 0).sum()),
+                     "sell": int((seg < 0).sum()), "neutral": int((seg == 0).sum())})
+    return {"buy": int((V_last > 0).sum()), "sell": int((V_last < 0).sum()),
+            "neutral": int((V_last == 0).sum()), "total": int(len(V_last))}, rows
+
+
+# =====================================================================
+#  TRADING STRATEGIES  (rule based, each gives BUY / SELL / NEUTRAL)
+# =====================================================================
+def run_strategies(df):
+    o, h, l, c, v = df["Open"], df["High"], df["Low"], df["Close"], df["Volume"]
+    tr = true_range(df)
+    out = []
+
+    def sig(buy, sell):
+        return "BUY" if bool(buy) else ("SELL" if bool(sell) else "NEUTRAL")
+
+    # 1 trend following
+    e20, e50 = c.ewm(span=20, adjust=False).mean(), c.ewm(span=50, adjust=False).mean()
+    atr14 = tr.ewm(alpha=1 / 14, adjust=False).mean().replace(0, np.nan)
+    up_m, dn_m = h.diff(), -l.diff()
+    plus = pd.Series(np.where((up_m > dn_m) & (up_m > 0), up_m, 0.0), index=df.index)
+    minus = pd.Series(np.where((dn_m > up_m) & (dn_m > 0), dn_m, 0.0), index=df.index)
+    pdi = 100 * plus.ewm(alpha=1 / 14, adjust=False).mean() / atr14
+    mdi = 100 * minus.ewm(alpha=1 / 14, adjust=False).mean() / atr14
+    adx = (100 * (pdi - mdi).abs() / (pdi + mdi).replace(0, np.nan)).ewm(alpha=1 / 14, adjust=False).mean()
+    out.append(("Trend Following", sig(
+        e20.iloc[-1] > e50.iloc[-1] and c.iloc[-1] > e20.iloc[-1] and pdi.iloc[-1] > mdi.iloc[-1] and adx.iloc[-1] > 20,
+        e20.iloc[-1] < e50.iloc[-1] and c.iloc[-1] < e20.iloc[-1] and pdi.iloc[-1] < mdi.iloc[-1] and adx.iloc[-1] > 20),
+        "EMA20/50 + DI + ADX"))
+    # 2 mean reversion
+    d = c.diff()
+    up = d.clip(lower=0).ewm(alpha=1 / 14, adjust=False).mean()
+    dn = (-d.clip(upper=0)).ewm(alpha=1 / 14, adjust=False).mean()
+    rsi = 100 - 100 / (1 + up / dn.replace(0, np.nan))
+    mid, sd = c.rolling(20).mean(), c.rolling(20).std()
+    out.append(("Mean Reversion", sig(
+        rsi.iloc[-1] < 35 and c.iloc[-1] < mid.iloc[-1] - 1.8 * sd.iloc[-1],
+        rsi.iloc[-1] > 65 and c.iloc[-1] > mid.iloc[-1] + 1.8 * sd.iloc[-1]), "RSI14 + Bollinger"))
+    # 3 breakout with volume
+    hh, ll = h.rolling(20).max().shift(1), l.rolling(20).min().shift(1)
+    rel = v / v.rolling(20).mean().replace(0, np.nan)
+    out.append(("Breakout", sig(c.iloc[-1] > hh.iloc[-1] and rel.iloc[-1] > 1.1,
+                                c.iloc[-1] < ll.iloc[-1] and rel.iloc[-1] > 1.1), "Donchian20 + volume"))
+    # 4 momentum
+    m = c.ewm(span=12, adjust=False).mean() - c.ewm(span=26, adjust=False).mean()
+    hist = m - m.ewm(span=9, adjust=False).mean()
+    roc = c.pct_change(10)
+    out.append(("Momentum", sig(hist.iloc[-1] > 0 and hist.iloc[-1] > hist.iloc[-2] and roc.iloc[-1] > 0,
+                                hist.iloc[-1] < 0 and hist.iloc[-1] < hist.iloc[-2] and roc.iloc[-1] < 0),
+                "MACD + ROC"))
+    # 5 volume / VWAP
+    tp = (h + l + c) / 3
+    vwap = (tp * v).rolling(20).sum() / v.rolling(20).sum().replace(0, np.nan)
+    obv = (np.sign(c.diff()).fillna(0) * v).cumsum()
+    mfv = ((c - l) - (h - c)) / (h - l).replace(0, np.nan) * v
+    cmf = mfv.rolling(20).sum() / v.rolling(20).sum().replace(0, np.nan)
+    ob10 = obv.diff(10).iloc[-1]
+    out.append(("Volume & VWAP", sig(c.iloc[-1] > vwap.iloc[-1] and ob10 > 0 and cmf.iloc[-1] > 0,
+                                     c.iloc[-1] < vwap.iloc[-1] and ob10 < 0 and cmf.iloc[-1] < 0),
+                "VWAP + OBV + CMF"))
+    # 6 supertrend + ichimoku
+    st_dir = supertrend(df, 10, 3)[-1]
+    ten = (h.rolling(9).max() + l.rolling(9).min()) / 2
+    kij = (h.rolling(26).max() + l.rolling(26).min()) / 2
+    out.append(("Supertrend + Ichimoku", sig(st_dir > 0 and ten.iloc[-1] > kij.iloc[-1],
+                                             st_dir < 0 and ten.iloc[-1] < kij.iloc[-1]), "ST(10,3) + Tenkan/Kijun"))
+    return out
+
+
+# =====================================================================
+#  FEATURES + MODEL
 # =====================================================================
 def htf_features(df, mins):
-    """Higher-timeframe (5x) trend context using only COMPLETED higher bars."""
     h = df.resample(f"{mins * 5}min").agg(
         {"Open": "first", "High": "max", "Low": "min", "Close": "last"}).dropna()
     c = h["Close"]
@@ -341,25 +650,25 @@ def htf_features(df, mins):
 
 def build_features(df, macro_f, mins):
     d = df.copy()
-    real_vol = (d["Volume"] > 0).mean() > 0.5
+    real_vol = bool((d["Volume"] > 0).mean() > 0.5)
     if real_vol:
         d["Volume"] = d["Volume"].replace(0, np.nan).ffill().fillna(1.0)
-    else:   # forex has no real volume: use tick-activity proxy (range based)
+    else:   # forex has no real volume: tick-activity proxy
         d["Volume"] = ((d["High"] - d["Low"]) / d["Close"] * 1e6).clip(lower=1.0)
     vol = d["Volume"]
 
+    ohlcv = d[RAW].copy()
     d = add_all_ta_features(d, open="Open", high="High", low="Low", close="Close",
                             volume="Volume", fillna=False)
     X = d.drop(columns=RAW).replace([np.inf, -np.inf], np.nan)
     X = X.loc[:, X.isna().mean() < 0.3].ffill().fillna(0.0)
 
     close = d["Close"]
-    for c in list(X.columns):                      # price-level indicators -> scale free
-        s = X[c]
+    for col in list(X.columns):
+        s = X[col]
         if s.std() > 0 and abs(s.corr(close)) > 0.9:
-            X[c] = s / close - 1.0
+            X[col] = s / close - 1.0
 
-    # candle shape + momentum
     for k in (1, 2, 3, 5, 8, 13):
         X[f"ret_{k}"] = close.pct_change(k)
     X["body"] = (d["Close"] - d["Open"]) / d["Close"]
@@ -368,20 +677,16 @@ def build_features(df, macro_f, mins):
     X["lower_wick"] = (d[["Open", "Close"]].min(axis=1) - d["Low"]) / d["Close"]
     X["streak"] = np.sign(close.diff()).rolling(5).sum()
 
-    # volume features
     mu, sd = vol.rolling(20).mean(), vol.rolling(20).std()
     X["vol_z"] = (vol - mu) / sd.replace(0, np.nan)
     X["rel_vol"] = vol / mu
     X["vol_trend"] = vol.rolling(5).mean() / mu
-    up_vol = vol.where(d["Close"] > d["Open"], 0.0).rolling(10).sum()
-    X["up_vol_ratio"] = up_vol / vol.rolling(10).sum()
+    X["up_vol_ratio"] = vol.where(d["Close"] > d["Open"], 0.0).rolling(10).sum() / vol.rolling(10).sum()
     X["pv_corr"] = close.pct_change().rolling(10).corr(vol.pct_change())
     day = naive_day(d.index)
     typ = (d["High"] + d["Low"] + d["Close"]) / 3
-    vwap = (typ * vol).groupby(day).cumsum() / vol.groupby(day).cumsum()
-    X["vwap_dev"] = close / vwap - 1
+    X["vwap_dev"] = close / ((typ * vol).groupby(day).cumsum() / vol.groupby(day).cumsum()) - 1
 
-    # session / time features
     idx = pd.DatetimeIndex(d.index)
     if idx.tz is not None:
         idx = idx.tz_convert("UTC")
@@ -389,13 +694,11 @@ def build_features(df, macro_f, mins):
     X["hour_sin"] = np.sin(2 * np.pi * hrs / 24)
     X["hour_cos"] = np.cos(2 * np.pi * hrs / 24)
 
-    # higher-timeframe context
     try:
         X = X.join(htf_features(df, mins))
     except Exception:
         pass
 
-    # macro / fundamental context
     if macro_f is not None:
         try:
             mf = macro_f[~macro_f.index.duplicated(keep="last")].sort_index()
@@ -405,19 +708,21 @@ def build_features(df, macro_f, mins):
         except Exception:
             pass
 
+    V, fams = indicator_bank(ohlcv)
+    ff = family_features(V, fams)
+    ff.index = X.index
+    X = X.join(ff)
+
     X = X.replace([np.inf, -np.inf], np.nan).fillna(0.0)
-    return X.loc[:, X.std() > 0], bool(real_vol)
+    return X.loc[:, X.std() > 0], real_vol, V[-1], fams, ohlcv
 
 
-# =====================================================================
-#  MODEL
-# =====================================================================
 def fit_ensemble(X, y, r):
-    keep = r.abs() >= r.abs().quantile(0.2)       # ignore tiny noise moves in training
+    keep = r.abs() >= r.abs().quantile(0.2)
     Xt, yt = X[keep], y[keep]
     if yt.nunique() < 2:
         Xt, yt = X, y
-    w = np.linspace(0.5, 1.0, len(Xt))             # recent candles count more
+    w = np.linspace(0.5, 1.0, len(Xt))
     hgb = HistGradientBoostingClassifier(max_iter=120, learning_rate=0.05, max_depth=4,
                                          l2_regularization=1.0, random_state=42)
     et = ExtraTreesClassifier(n_estimators=150, max_depth=7, min_samples_leaf=10,
@@ -434,34 +739,12 @@ def ens_proba(models, X):
     return np.mean([m.predict_proba(X)[:, 1] for m in models], axis=0)
 
 
-def stats_at(oos, thr):
-    conf = np.maximum(oos["p_up"], 1 - oos["p_up"])
-    sub = oos[conf >= thr]
-    if len(sub) == 0:
-        return 0, None, pd.Series(dtype=bool), sub
-    win = ((sub["p_up"] > 0.5).astype(int) == sub["y"])
-    return len(sub), float(win.mean()), win, sub
-
-
-def auto_threshold(oos):
-    """Pick the confidence level with the best statistically-safe (Wilson lower bound) win rate."""
-    best = None
-    for t in np.arange(0.52, 0.701, 0.01):
-        t = round(float(t), 2)
-        n, acc, win, _ = stats_at(oos, t)
-        if n >= MIN_SIGNALS:
-            lb = wilson_lb(int(win.sum()), n)
-            if best is None or lb > best[0]:
-                best = (lb, t)
-    return best[1] if best else 0.60
-
-
 @st.cache_data(ttl=60, show_spinner=False)
 def analyse(ticker, tf):
     interval, rule, period, mins = TF[tf]
     raw = load_data(ticker, interval, rule, period)
     if raw is None or len(raw) < 300:
-        return {"ok": False, "reason": "Feed warming up for this timeframe"}
+        return {"ok": False, "reason": "Feed se is timeframe ka data nahi mila (market band ya feed delay)"}
 
     age_min = (datetime.now(timezone.utc) - to_utc(raw.index[-1])).total_seconds() / 60
     forming = age_min < mins
@@ -469,7 +752,7 @@ def analyse(ticker, tf):
     df = raw.iloc[:-1] if forming else raw
 
     macro_f = macro_feature_frame(load_macro())
-    X, real_vol = build_features(df, macro_f, mins)
+    X, real_vol, v_last, fams, ohlcv = build_features(df, macro_f, mins)
     ret_next = df["Close"].shift(-1) / df["Close"] - 1.0
     y = (ret_next > 0).astype(int)
 
@@ -477,7 +760,7 @@ def analyse(ticker, tf):
     flat = rl != 0
     Xl, yl, rl = Xl[flat], yl[flat], rl[flat]
     if len(Xl) < 250:
-        return {"ok": False, "reason": "Collecting more candles for this timeframe"}
+        return {"ok": False, "reason": "Is timeframe ke liye abhi candles jama ho rahi hain"}
 
     n = len(Xl)
     edges = np.linspace(int(n * 0.5), n, FOLDS + 1).astype(int)
@@ -491,51 +774,94 @@ def analyse(ticker, tf):
     final = fit_ensemble(Xl, yl, rl)
     p_live = float(ens_proba(final, X.iloc[[-1]])[0])
 
+    votes, fam_rows = vote_summary(v_last, fams)
+    try:
+        strategies = run_strategies(ohlcv)
+    except Exception:
+        strategies = []
+    atr = float(true_range(ohlcv).rolling(14).mean().iloc[-1])
+
     return {
-        "ok": True, "p_up": p_live, "oos": oos, "thr": auto_threshold(oos),
-        "base": float(max(oos.y.mean(), 1 - oos.y.mean())),
+        "ok": True, "p_up": p_live, "oos": oos, "votes": votes, "fam_rows": fam_rows,
+        "strategies": strategies, "atr": atr,
         "price": float(raw["Close"].iloc[-1]), "age": float(age_min), "stale": bool(stale),
-        "chart": raw.tail(120), "n_feat": int(X.shape[1]), "real_vol": real_vol,
+        "chart": raw.tail(120), "real_vol": real_vol,
     }
 
 
-def verdict(res):
-    p, thr = res["p_up"], res["thr"]
-    conf = max(p, 1 - p)
-    side = "BUY" if p >= 0.5 else "SELL"
-    n, acc, _, _ = stats_at(res["oos"], thr)
-    out = dict(side=side, conf=conf, n=n, acc=acc, thr=thr)
-    if res["stale"]:
-        return {**out, "kind": "wait", "text": "STANDBY · MARKET QUIET"}
-    if conf >= thr and n >= MIN_SIGNALS and acc is not None and acc >= max(0.55, res["base"]):
-        return {**out, "kind": "strong", "text": f"STRONG {side}"}
-    return {**out, "kind": "wait", "text": "NEUTRAL · NO SETUP"}
+# =====================================================================
+#  SIGNAL + UI HELPERS
+# =====================================================================
+def signal_of(p, stale=False):
+    """returns (text, side, css)"""
+    if stale:
+        return "STANDBY · MARKET QUIET", "NONE", "w"
+    if p >= 0.60:
+        return "STRONG BUY", "BUY", "b"
+    if p >= 0.52:
+        return "BUY", "BUY", "b"
+    if p <= 0.40:
+        return "STRONG SELL", "SELL", "s"
+    if p <= 0.48:
+        return "SELL", "SELL", "s"
+    return "NEUTRAL", "NONE", "w"
 
 
-# =====================================================================
-#  UI HELPERS
-# =====================================================================
-def card_html(tf, res, v):
-    if v["kind"] == "strong":
-        cls = "strong-buy" if v["side"] == "BUY" else "strong-sell"
-        sc, icon = ("b", "▲") if v["side"] == "BUY" else ("s", "▼")
-    else:
-        cls, sc, icon = "", "w", "◆"
+def levels(side, live, atr):
+    if side == "BUY":
+        return live, live + 1.5 * atr, live - 1.0 * atr
+    if side == "SELL":
+        return live, live - 1.5 * atr, live + 1.0 * atr
+    return None
+
+
+def strat_counts(res):
+    s = res.get("strategies", [])
+    return (sum(1 for x in s if x[1] == "BUY"), sum(1 for x in s if x[1] == "SELL"),
+            sum(1 for x in s if x[1] == "NEUTRAL"))
+
+
+def card_html(tf, res, live):
+    text, side, sc = signal_of(res["p_up"], res["stale"])
+    cls = "strong-buy" if (side == "BUY" and "STRONG" in text) else ("strong-sell" if (side == "SELL" and "STRONG" in text) else "")
+    icon = {"b": "▲", "s": "▼", "w": "◆"}[sc]
     buy = res["p_up"] * 100
-    acc = "n/a" if v["acc"] is None else f"{v['acc'] * 100:.1f}%"
+    vt = res["votes"]
+    sb, ss, sn = strat_counts(res)
+    lv = levels(side, live, res["atr"])
+    if lv:
+        lvl = (f'ENTRY <b>{fmt_price(lv[0])}</b> · TP <b class="g">{fmt_price(lv[1])}</b> · '
+               f'SL <b class="r">{fmt_price(lv[2])}</b><br>')
+    else:
+        lvl = "ENTRY <b>wait for a clear lean</b><br>"
     return (
         f'<div class="card {cls}"><div class="tf">{tf}</div>'
-        f'<div class="sig {sc}">{icon} {v["text"]}</div>'
+        f'<div class="sig {sc}">{icon} {text}</div>'
         f'<div class="bar"><div class="fill" style="width:{buy:.1f}%"></div></div>'
         f'<div class="pl"><span>BUY {buy:.1f}%</span><span>SELL {100 - buy:.1f}%</span></div>'
-        f'<div class="meta">CONFIDENCE <b>{v["conf"] * 100:.1f}%</b> · AUTO LEVEL <b>{v["thr"] * 100:.0f}%</b><br>'
-        f'VERIFIED ACCURACY <b>{acc}</b> over <b>{v["n"]}</b> signals</div></div>'
+        f'<div class="meta">INDICATORS <b class="g">▲ {vt["buy"]} BUY</b> · <b class="r">▼ {vt["sell"]} SELL</b> · '
+        f'◆ {vt["neutral"]} NEUTRAL (of {vt["total"]})<br>'
+        f'STRATEGIES <b class="g">{sb} BUY</b> · <b class="r">{ss} SELL</b> · {sn} NEUTRAL<br>'
+        f'{lvl}EXPIRY <b>next {tf.lower()} candle</b></div></div>'
     )
 
 
 def hud(k, v, d="", dcls="nt"):
     extra = f'<div class="d {dcls}">{d}</div>' if d else ""
     return f'<div class="hud"><div class="k">{k}</div><div class="v">{v}</div>{extra}</div>'
+
+
+def html_table(headers, rows):
+    th = "".join(f"<th>{html.escape(str(x))}</th>" for x in headers)
+    body = ""
+    for r in rows:
+        body += "<tr>" + "".join(f"<td>{x}</td>" for x in r) + "</tr>"
+    return f'<div class="tblwrap"><table class="tbl"><tr>{th}</tr>{body}</table></div>'
+
+
+def colored(text, kind):
+    cls = {"b": "up", "s": "dn"}.get(kind, "nt")
+    return f'<span class="{cls}">{html.escape(text)}</span>'
 
 
 def boot_html(step, pct):
@@ -556,42 +882,40 @@ def boot_html(step, pct):
 
 def style_fig(fig, h=420):
     fig.update_layout(template="plotly_dark", height=h, paper_bgcolor="rgba(0,0,0,0)",
-                      plot_bgcolor="rgba(3,8,20,0.8)", margin=dict(l=10, r=10, t=40, b=10),
-                      font=dict(family="Share Tech Mono", color="#e9fbff"))
-    fig.update_xaxes(gridcolor="rgba(0,240,255,0.08)")
-    fig.update_yaxes(gridcolor="rgba(0,240,255,0.08)")
+                      plot_bgcolor="#030814", margin=dict(l=10, r=10, t=40, b=10),
+                      font=dict(family="Share Tech Mono", color="#f4fcff", size=13))
+    fig.update_xaxes(gridcolor="rgba(0,240,255,0.12)", tickfont=dict(color="#f4fcff"))
+    fig.update_yaxes(gridcolor="rgba(0,240,255,0.12)", tickfont=dict(color="#f4fcff"))
     return fig
 
 
 # =====================================================================
-#  SIDEBAR  (fully automatic: just choose the asset)
+#  SIDEBAR
 # =====================================================================
 with st.sidebar:
     st.markdown("### 🤖 AXIOM TRADER")
     pair = st.selectbox("ASSET", list(MARKETS.keys()))
     scan = st.button("⚡ INITIATE SIGNAL")
-    st.caption("Auto mode: timeframes, confidence level, validation aur data sab khud "
-               "automatic select hota hai.")
+    st.caption("Sab kuch automatic hai: timeframes, indicators, strategies aur fundamentals.")
 
 # =====================================================================
 #  HEADER
 # =====================================================================
 st.markdown(
     '<div class="title-wrap"><div class="title">AXIOM TRADER</div>'
-    '<div class="sub"><span class="dot"></span>AUTONOMOUS AI SIGNAL ENGINE · '
-    'VOLUME + TECHNICAL + FUNDAMENTAL · WALK-FORWARD VERIFIED</div></div>',
+    '<div class="sub"><span class="dot"></span>AUTONOMOUS AI SIGNAL ENGINE · 1500+ INDICATORS · '
+    'STRATEGIES · FUNDAMENTALS</div></div>',
     unsafe_allow_html=True,
 )
 
 # =====================================================================
-#  SCAN  (with boot animation)
+#  SCAN  (boot animation)
 # =====================================================================
 if scan:
     stage = st.empty()
-    steps = ["Connecting to live market feed",
-             "Reading volume and order-flow activity",
-             "Syncing macro and fundamental pulse"]
-    for i, s in enumerate(steps):
+    for i, s in enumerate(["Connecting to live market feed",
+                           "Reading volume and order-flow activity",
+                           "Syncing macro and fundamental pulse"]):
         stage.markdown(boot_html(s, 4 + i * 6), unsafe_allow_html=True)
         time.sleep(0.7)
     try:
@@ -602,85 +926,152 @@ if scan:
     results = {}
     tf_list = list(TF.keys())
     for i, tf in enumerate(tf_list):
-        stage.markdown(boot_html(f"{tf} · computing 100+ indicators · training neural ensemble",
+        stage.markdown(boot_html(f"{tf} · computing 1500+ indicators · training neural ensemble",
                                  22 + 72 * i / len(tf_list)), unsafe_allow_html=True)
         try:
             results[tf] = analyse(MARKETS[pair], tf)
         except Exception as e:
-            results[tf] = {"ok": False, "reason": f"{type(e).__name__}"}
+            results[tf] = {"ok": False, "reason": f"Processing error: {type(e).__name__}"}
+    live = load_live(MARKETS[pair])
     stage.markdown(boot_html("Signals locked · rendering dashboard", 100), unsafe_allow_html=True)
     time.sleep(0.8)
     stage.empty()
-    st.session_state["scan"] = {"pair": pair, "results": results}
+    st.session_state["scan"] = {"ver": SESSION_VER, "pair": pair, "results": results, "live": live}
 
 state = st.session_state.get("scan")
-tab1, tab2, tab3, tab4 = st.tabs(["◉ COMMAND CENTER", "◉ MACRO & NEWS", "◉ BACKTEST LAB", "◉ CHARTS"])
+if state is not None and state.get("ver") != SESSION_VER:
+    state = None
+    st.session_state.pop("scan", None)
+
+tab1, tab2, tab3, tab4, tab5 = st.tabs(
+    ["◉ COMMAND CENTER", "◉ INDICATORS & STRATEGIES", "◉ MACRO & NEWS", "◉ BACKTEST", "◉ CHARTS"])
 
 if not state:
     with tab1:
-        st.markdown('<div class="hud"><div class="k">STATUS</div><div class="v">READY</div>'
-                    '<div class="d nt">Sidebar me asset chunein aur INITIATE SIGNAL dabayein.</div></div>',
+        st.markdown(hud("STATUS", "READY", "Sidebar me asset chunein aur INITIATE SIGNAL dabayein.", "nt"),
                     unsafe_allow_html=True)
 else:
     results = state["results"]
     sel_pair = state["pair"]
     sel_ticker = MARKETS[sel_pair]
-    good = {tf: r for tf, r in results.items() if r.get("ok")}
-    verdicts = {tf: verdict(r) for tf, r in good.items()}
+    good = {tf: r for tf, r in results.items() if r.get("ok") and "votes" in r and "p_up" in r}
+    any_res = next(iter(good.values())) if good else None
+    live_info = state.get("live")
+    live_price = live_info[0] if live_info else (any_res["price"] if any_res else None)
 
     # ---------------- COMMAND CENTER ----------------
     with tab1:
         if good:
-            any_res = next(iter(good.values()))
-            sb = [tf for tf, v in verdicts.items() if v["kind"] == "strong" and v["side"] == "BUY"]
-            ss = [tf for tf, v in verdicts.items() if v["kind"] == "strong" and v["side"] == "SELL"]
-            if sb and not ss:
-                cons, ccl = f"▲ BUY ({len(sb)}/{len(good)})", "up"
-            elif ss and not sb:
-                cons, ccl = f"▼ SELL ({len(ss)}/{len(good)})", "dn"
-            elif sb and ss:
-                cons, ccl = "◆ MIXED", "nt"
-            else:
-                cons, ccl = "◆ NEUTRAL", "nt"
+            mean_p = float(np.mean([r["p_up"] for r in good.values()]))
+            o_text, o_side, o_cls = signal_of(mean_p, any_res["stale"])
+            tot_b = sum(r["votes"]["buy"] for r in good.values())
+            tot_s = sum(r["votes"]["sell"] for r in good.values())
+            age_txt = f"{any_res['age']:.1f} min"
 
             c1, c2, c3, c4 = st.columns(4)
             c1.markdown(hud("ASSET", sel_pair), unsafe_allow_html=True)
-            c2.markdown(hud("LIVE PRICE", f"{any_res['price']:,.5f}"), unsafe_allow_html=True)
-            c3.markdown(hud("FEED AGE", f"{any_res['age']:.1f} min",
+            c2.markdown(hud("LIVE PRICE", fmt_price(live_price),
                             "volume: " + ("real" if any_res["real_vol"] else "tick-activity"), "nt"),
                         unsafe_allow_html=True)
-            c4.markdown(hud("AXIOM CONSENSUS", cons, f"{any_res['n_feat']} features per candle", ccl),
-                        unsafe_allow_html=True)
+            c3.markdown(hud("LAST CANDLE AGE", age_txt, "feed: Yahoo Finance", "nt"), unsafe_allow_html=True)
+            c4.markdown(hud("AXIOM SIGNAL", o_text, f"BUY {mean_p * 100:.1f}% · SELL {100 - mean_p * 100:.1f}%",
+                            {"b": "up", "s": "dn", "w": "nt"}[o_cls]), unsafe_allow_html=True)
 
-            mean_buy = float(np.mean([r["p_up"] for r in good.values()]) * 100)
-            gcol, _ = st.columns([1, 2])
-            with gcol:
+            g1, g2 = st.columns([1, 2])
+            with g1:
                 fig = go.Figure(go.Indicator(
-                    mode="gauge+number", value=mean_buy,
-                    number={"suffix": "% BUY", "font": {"family": "Orbitron", "size": 26}},
-                    title={"text": "MULTI-TIMEFRAME BIAS", "font": {"family": "Orbitron", "size": 13}},
-                    gauge={"axis": {"range": [0, 100]}, "bar": {"color": "#00f0ff"},
-                           "steps": [{"range": [0, 45], "color": "rgba(255,59,92,0.35)"},
-                                     {"range": [45, 55], "color": "rgba(140,160,180,0.25)"},
-                                     {"range": [55, 100], "color": "rgba(0,255,156,0.35)"}]}))
-                st.plotly_chart(style_fig(fig, 250), key="gauge")
+                    mode="gauge+number", value=mean_p * 100,
+                    number={"suffix": "% BUY", "font": {"family": "Orbitron", "size": 26, "color": "#f4fcff"}},
+                    title={"text": "ALL-TIMEFRAME PROBABILITY", "font": {"family": "Orbitron", "size": 13, "color": "#f4fcff"}},
+                    gauge={"axis": {"range": [0, 100], "tickcolor": "#f4fcff"}, "bar": {"color": "#00f0ff"},
+                           "steps": [{"range": [0, 48], "color": "rgba(255,92,122,0.45)"},
+                                     {"range": [48, 52], "color": "rgba(198,236,250,0.30)"},
+                                     {"range": [52, 100], "color": "rgba(0,255,156,0.40)"}]}))
+                st.plotly_chart(style_fig(fig, 260), key="gauge")
+            with g2:
+                st.markdown(hud("ALL INDICATORS COMBINED",
+                                f'<span class="up">▲ {tot_b}</span> &nbsp; <span class="dn">▼ {tot_s}</span>',
+                                f"{sum(r['votes']['total'] for r in good.values())} indicator votes across "
+                                f"{len(good)} timeframes", "nt"), unsafe_allow_html=True)
+                ms0 = macro_summary(load_macro())
+                bias, bcl, why = fundamental_bias(sel_pair, sel_ticker, ms0)
+                st.markdown(hud("FUNDAMENTAL BIAS", bias, why, bcl), unsafe_allow_html=True)
 
-            st.markdown("#### NEXT-CANDLE SIGNALS")
+        # all six timeframes in one table (always shown)
+        rows = []
+        for tf in TF:
+            r = results.get(tf, {})
+            if r.get("ok") and "votes" in r:
+                text, side, sc = signal_of(r["p_up"], r["stale"])
+                sb, ss, sn = strat_counts(r)
+                rows.append([f"<b>{tf}</b>", colored(text, sc), f"{r['p_up'] * 100:.1f}%",
+                             f"{100 - r['p_up'] * 100:.1f}%", f'<span class="up">{r["votes"]["buy"]}</span>',
+                             f'<span class="dn">{r["votes"]["sell"]}</span>', f"{sb} / {ss} / {sn}"])
+            else:
+                rows.append([f"<b>{tf}</b>", '<span class="nt">Loading…</span>', "—", "—", "—", "—", "—"])
+        st.markdown("#### ALL TIMEFRAMES")
+        st.markdown(html_table(["Timeframe", "Signal", "Buy %", "Sell %", "Indicators BUY",
+                                "Indicators SELL", "Strategies B / S / N"], rows), unsafe_allow_html=True)
+
+        if good and live_price:
+            st.markdown("#### NEXT-CANDLE SIGNALS (live price based)")
             cols = st.columns(3)
             for i, tf in enumerate(good):
                 with cols[i % 3]:
-                    st.markdown(card_html(tf, good[tf], verdicts[tf]), unsafe_allow_html=True)
-        else:
-            st.markdown(hud("STATUS", "FEED WARMING UP",
-                            "Kuch der baad dobara INITIATE SIGNAL dabayein.", "nt"),
-                        unsafe_allow_html=True)
+                    st.markdown(card_html(tf, good[tf], live_price), unsafe_allow_html=True)
         for tf, r in results.items():
             if not r.get("ok"):
-                st.markdown(f'<div class="news">{tf}: {html.escape(str(r.get("reason")))}</div>',
+                st.markdown(f'<div class="news"><b>{tf}</b> · {html.escape(str(r.get("reason")))}</div>',
                             unsafe_allow_html=True)
 
-    # ---------------- MACRO & NEWS (fundamentals) ----------------
+    # ---------------- INDICATORS & STRATEGIES ----------------
     with tab2:
+        if not good:
+            st.markdown(hud("STATUS", "NO DATA YET", "Dobara INITIATE SIGNAL dabayein.", "nt"),
+                        unsafe_allow_html=True)
+        else:
+            tf_i = st.selectbox("TIMEFRAME", list(good.keys()), key="ind_tf")
+            r = good[tf_i]
+            vt = r["votes"]
+            a, b, c_, d_ = st.columns(4)
+            a.markdown(hud("INDICATORS BUY", f'<span class="up">{vt["buy"]}</span>',
+                           f'{vt["buy"] / vt["total"] * 100:.1f}% of {vt["total"]}', "up"), unsafe_allow_html=True)
+            b.markdown(hud("INDICATORS SELL", f'<span class="dn">{vt["sell"]}</span>',
+                           f'{vt["sell"] / vt["total"] * 100:.1f}% of {vt["total"]}', "dn"), unsafe_allow_html=True)
+            c_.markdown(hud("NEUTRAL", f'{vt["neutral"]}', f'{vt["neutral"] / vt["total"] * 100:.1f}%', "nt"),
+                        unsafe_allow_html=True)
+            d_.markdown(hud("MODEL PROBABILITY", f'{r["p_up"] * 100:.1f}% BUY',
+                            f'{100 - r["p_up"] * 100:.1f}% SELL', "nt"), unsafe_allow_html=True)
+
+            fr = sorted(r["fam_rows"], key=lambda x: -(x["buy"] + x["sell"]))
+            fig = go.Figure()
+            fig.add_trace(go.Bar(y=[x["family"] for x in fr], x=[x["buy"] for x in fr], name="BUY",
+                                 orientation="h", marker_color="#00ff9c"))
+            fig.add_trace(go.Bar(y=[x["family"] for x in fr], x=[-x["sell"] for x in fr], name="SELL",
+                                 orientation="h", marker_color="#ff5c7a"))
+            fig.update_layout(barmode="relative", title="BUY vs SELL votes by indicator family",
+                              yaxis=dict(autorange="reversed"), legend=dict(orientation="h"))
+            st.plotly_chart(style_fig(fig, 80 + 22 * len(fr)), key="fam_chart")
+
+            frows = []
+            for x in fr:
+                lean = "BUY" if x["buy"] > x["sell"] else ("SELL" if x["sell"] > x["buy"] else "NEUTRAL")
+                kind = {"BUY": "b", "SELL": "s"}.get(lean, "w")
+                frows.append([x["family"], x["total"], f'<span class="up">{x["buy"]}</span>',
+                              f'<span class="dn">{x["sell"]}</span>', x["neutral"], colored(lean, kind)])
+            st.markdown("#### INDICATOR FAMILIES")
+            st.markdown(html_table(["Family", "Variants", "BUY", "SELL", "Neutral", "Lean"], frows),
+                        unsafe_allow_html=True)
+
+            st.markdown("#### TRADING STRATEGIES")
+            srows = []
+            for name, sg, rule in r["strategies"]:
+                kind = {"BUY": "b", "SELL": "s"}.get(sg, "w")
+                srows.append([f"<b>{html.escape(name)}</b>", colored(sg, kind), html.escape(rule)])
+            st.markdown(html_table(["Strategy", "Signal", "Rules used"], srows), unsafe_allow_html=True)
+
+    # ---------------- MACRO & NEWS ----------------
+    with tab3:
         macro = None
         try:
             macro = load_macro()
@@ -693,87 +1084,76 @@ else:
         for i, k in enumerate(["dxy", "tnx", "vix", "spx"]):
             if k in ms:
                 chg = ms[k]["chg"]
-                cols[i].markdown(hud(names[k], f"{ms[k]['last']:,.2f}",
-                                     f"{chg:+.2f}% today", "up" if chg >= 0 else "dn"),
-                                 unsafe_allow_html=True)
-        cols[4].markdown(hud(f"{sel_pair} FUNDAMENTAL BIAS", bias, why, bcl), unsafe_allow_html=True)
+                cols[i].markdown(hud(names[k], f"{ms[k]['last']:,.2f}", f"{chg:+.2f}% today",
+                                     "up" if chg >= 0 else "dn"), unsafe_allow_html=True)
+        cols[4].markdown(hud(f"{sel_pair} BIAS", bias, why, bcl), unsafe_allow_html=True)
         st.markdown("#### LATEST HEADLINES")
         news = load_news(sel_ticker)
         if news:
             for t in news:
                 st.markdown(f'<div class="news">{html.escape(t)}</div>', unsafe_allow_html=True)
         else:
-            st.markdown('<div class="news">Headlines is waqt available nahi.</div>', unsafe_allow_html=True)
+            st.markdown('<div class="news">Is waqt headlines available nahi hain.</div>', unsafe_allow_html=True)
 
-    # ---------------- BACKTEST LAB ----------------
-    with tab3:
-        if not good:
-            st.markdown(hud("STATUS", "NO DATA YET"), unsafe_allow_html=True)
-        else:
-            tf_sel = st.selectbox("TIMEFRAME", list(good.keys()), key="bt_tf")
-            res = good[tf_sel]
-            thr = res["thr"]
-            n, acc, win, sub = stats_at(res["oos"], thr)
-
-            m1, m2, m3, m4 = st.columns(4)
-            m1.metric("AUTO CONFIDENCE LEVEL", f"{thr * 100:.0f}%")
-            m2.metric("VERIFIED SIGNALS", n)
-            m3.metric("VERIFIED WIN RATE", "n/a" if acc is None else f"{acc * 100:.1f}%")
-            m4.metric("ALL-CANDLE BASELINE", f"{res['base'] * 100:.1f}%")
-
-            if n > 0:
-                pnl = np.where(win.values, PAYOUT, -1.0)
-                eq = pd.Series(pnl, index=sub.index).cumsum()
-                dd = float((eq - eq.cummax()).min())
-                wins, losses = float(pnl[pnl > 0].sum()), float(-pnl[pnl < 0].sum())
-                pf = wins / losses if losses > 0 else float("inf")
-                k1, k2, k3 = st.columns(3)
-                k1.metric("NET (stake units)", f"{eq.iloc[-1]:+.1f}")
-                k2.metric("MAX DRAWDOWN", f"{dd:.1f}")
-                k3.metric("PROFIT FACTOR", "∞" if pf == float("inf") else f"{pf:.2f}")
-                fig = go.Figure(go.Scatter(x=eq.index, y=eq.values, mode="lines",
-                                           line=dict(color="#00f0ff", width=2),
-                                           fill="tozeroy", fillcolor="rgba(0,240,255,0.08)"))
-                fig.update_layout(title="EQUITY CURVE · verified high-confidence signals")
-                st.plotly_chart(style_fig(fig, 340), key="equity")
-
-            st.markdown("#### CONFIDENCE LEVEL MAP")
-            rows = []
-            for t in [0.52, 0.55, 0.58, 0.60, 0.63, 0.66, 0.70]:
-                nn, aa, _, _ = stats_at(res["oos"], t)
-                rows.append({"Confidence ≥": f"{t * 100:.0f}%", "Signals": nn,
-                             "Win rate %": None if aa is None else round(aa * 100, 1)})
-            st.dataframe(pd.DataFrame(rows), hide_index=True)
-            st.caption("Walk-forward results: model har hissa un candles par test karta hai jo "
-                       "training me shamil nahi thin.")
-
-    # ---------------- CHARTS ----------------
+    # ---------------- BACKTEST ----------------
     with tab4:
         if not good:
-            st.markdown(hud("STATUS", "NO DATA YET"), unsafe_allow_html=True)
+            st.markdown(hud("STATUS", "NO DATA YET", "", "nt"), unsafe_allow_html=True)
+        else:
+            tf_b = st.selectbox("TIMEFRAME", list(good.keys()), key="bt_tf")
+            oos = good[tf_b]["oos"]
+            pred = (oos["p_up"] > 0.5).astype(int)
+            acc_all = float((pred == oos["y"]).mean())
+            lean = oos[(oos["p_up"] - 0.5).abs() >= 0.05]
+            m1, m2, m3, m4 = st.columns(4)
+            m1.markdown(hud("TESTED CANDLES", f"{len(oos)}", "walk-forward, unseen data", "nt"), unsafe_allow_html=True)
+            m2.markdown(hud("OVERALL ACCURACY", f"{acc_all * 100:.1f}%", "all candles", "nt"), unsafe_allow_html=True)
+            if len(lean) > 0:
+                win = ((lean["p_up"] > 0.5).astype(int) == lean["y"])
+                m3.markdown(hud("STRONG-LEAN SIGNALS", f"{len(lean)}", "BUY ≥ 55% or SELL ≥ 55%", "nt"),
+                            unsafe_allow_html=True)
+                m4.markdown(hud("STRONG-LEAN ACCURACY", f"{win.mean() * 100:.1f}%", "", "nt"), unsafe_allow_html=True)
+                pnl = np.where(win.values, PAYOUT, -1.0)
+                eq = pd.Series(pnl, index=lean.index).cumsum()
+                fig = go.Figure(go.Scatter(x=eq.index, y=eq.values, mode="lines",
+                                           line=dict(color="#00f0ff", width=2),
+                                           fill="tozeroy", fillcolor="rgba(0,240,255,0.10)"))
+                fig.update_layout(title="EQUITY CURVE · strong-lean signals (1 unit stake)")
+                st.plotly_chart(style_fig(fig, 340), key="equity")
+            else:
+                m3.markdown(hud("STRONG-LEAN SIGNALS", "0", "", "nt"), unsafe_allow_html=True)
+                m4.markdown(hud("STRONG-LEAN ACCURACY", "—", "", "nt"), unsafe_allow_html=True)
+
+    # ---------------- CHARTS ----------------
+    with tab5:
+        if not good:
+            st.markdown(hud("STATUS", "NO DATA YET", "", "nt"), unsafe_allow_html=True)
         else:
             tf_c = st.selectbox("TIMEFRAME", list(good.keys()), key="ch_tf")
-            res = good[tf_c]
-            ch = res["chart"]
-            v = verdicts[tf_c]
+            r = good[tf_c]
+            ch = r["chart"]
+            text, side, sc = signal_of(r["p_up"], r["stale"])
             vol = ch["Volume"] if ch["Volume"].sum() > 0 else (ch["High"] - ch["Low"]) / ch["Close"] * 1e6
-            fig = make_subplots(rows=2, cols=1, shared_xaxes=True,
-                                row_heights=[0.75, 0.25], vertical_spacing=0.03)
+            fig = make_subplots(rows=2, cols=1, shared_xaxes=True, row_heights=[0.75, 0.25], vertical_spacing=0.03)
             fig.add_trace(go.Candlestick(
                 x=ch.index, open=ch["Open"], high=ch["High"], low=ch["Low"], close=ch["Close"],
-                increasing_line_color="#00ff9c", decreasing_line_color="#ff3b5c", name="Price"), row=1, col=1)
+                increasing_line_color="#00ff9c", decreasing_line_color="#ff5c7a", name="Price"), row=1, col=1)
             fig.add_trace(go.Scatter(x=ch.index, y=ch["Close"].ewm(span=20).mean(), name="EMA20",
-                                     line=dict(color="#00f0ff", width=1.4)), row=1, col=1)
+                                     line=dict(color="#00f0ff", width=1.5)), row=1, col=1)
             fig.add_trace(go.Scatter(x=ch.index, y=ch["Close"].ewm(span=50).mean(), name="EMA50",
-                                     line=dict(color="#ff2bd6", width=1.4)), row=1, col=1)
-            colors = np.where(ch["Close"] >= ch["Open"], "#00ff9c", "#ff3b5c")
+                                     line=dict(color="#ff6be6", width=1.5)), row=1, col=1)
+            colors = np.where(ch["Close"] >= ch["Open"], "#00ff9c", "#ff5c7a")
             fig.add_trace(go.Bar(x=ch.index, y=vol, marker_color=colors, name="Volume"), row=2, col=1)
-            fig.add_annotation(x=ch.index[-1], y=float(ch["High"].iloc[-1]), xref="x", yref="y",
-                               text=f"{'▲' if v['side'] == 'BUY' else '▼'} {v['side']} {v['conf'] * 100:.0f}%",
-                               showarrow=True, arrowhead=2, font=dict(color="#00f0ff", size=14),
-                               arrowcolor="#00f0ff")
-            fig.update_layout(title=f"{sel_pair} · {tf_c}", xaxis_rangeslider_visible=False,
+            lv = levels(side, live_price, r["atr"]) if live_price else None
+            if lv:
+                fig.add_hline(y=lv[0], line_dash="dot", line_color="#00f0ff", row=1, col=1,
+                              annotation_text="ENTRY", annotation_font_color="#f4fcff")
+                fig.add_hline(y=lv[1], line_dash="dot", line_color="#00ff9c", row=1, col=1,
+                              annotation_text="TP", annotation_font_color="#f4fcff")
+                fig.add_hline(y=lv[2], line_dash="dot", line_color="#ff5c7a", row=1, col=1,
+                              annotation_text="SL", annotation_font_color="#f4fcff")
+            fig.update_layout(title=f"{sel_pair} · {tf_c} · {text}", xaxis_rangeslider_visible=False,
                               showlegend=False)
-            st.plotly_chart(style_fig(fig, 560), key="candles")
+            st.plotly_chart(style_fig(fig, 580), key="candles")
 
 st.caption("AXIOM TRADER · analytics tool, not financial advice.")
