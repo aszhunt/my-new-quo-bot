@@ -81,7 +81,47 @@ button[data-baseweb="tab"] { font-family:'Orbitron',sans-serif; letter-spacing:2
   color:#00f0ff; }
 .stButton button:hover { box-shadow:0 0 20px rgba(0,240,255,.5); color:#fff; border-color:#fff; }
 .warn { border:1px solid #ffb020; color:#ffb020; border-radius:10px; padding:8px 14px; margin:8px 0;
-  background: rgba(255,176,32,0.07); font-size:13px; }
+  background: #1a1203; font-size:13px; }
+
+/* ---------- FORCE ULTRA-DARK EVERYWHERE (no white / light surfaces) ---------- */
+html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"],
+[data-testid="stMainBlockContainer"], .main, .block-container { background-color: #02040a !important; }
+[data-testid="stSidebar"], [data-testid="stSidebar"] > div { background: #03060f !important; }
+.stApp p, .stApp span, .stApp label, .stApp li, .stApp h1, .stApp h2, .stApp h3, .stApp h4,
+.stApp div[data-testid="stMarkdownContainer"], .stApp small, .stApp caption,
+[data-testid="stWidgetLabel"] p, [data-testid="stCaptionContainer"] { color: #e9fbff !important; }
+/* inputs / selects / multiselect */
+div[data-baseweb="select"] > div, div[data-baseweb="input"], div[data-baseweb="base-input"],
+input, textarea { background-color: #050a18 !important; color: #e9fbff !important;
+  border-color: rgba(0,240,255,0.35) !important; }
+div[data-baseweb="select"] span, div[data-baseweb="select"] div { color: #e9fbff !important; }
+div[data-baseweb="select"] svg { fill: #00f0ff !important; }
+span[data-baseweb="tag"] { background-color: #0a1a33 !important; border: 1px solid #00f0ff; }
+span[data-baseweb="tag"] span { color: #00f0ff !important; }
+/* dropdown popups */
+div[data-baseweb="popover"], div[data-baseweb="popover"] > div, div[data-baseweb="menu"],
+ul[role="listbox"], li[role="option"] { background-color: #050a18 !important; color: #e9fbff !important; }
+li[role="option"]:hover, li[aria-selected="true"] { background-color: #0a2040 !important; }
+/* radio / slider / tabs */
+div[role="radiogroup"] label, div[role="radiogroup"] p { color: #e9fbff !important; }
+div[data-baseweb="slider"] div { color: #e9fbff !important; }
+div[data-testid="stSliderThumbValue"], div[data-testid="stTickBarMin"], div[data-testid="stTickBarMax"] {
+  color: #00f0ff !important; background: transparent !important; }
+div[data-baseweb="tab-list"] { background: #02040a !important; border-bottom: 1px solid rgba(0,240,255,0.25); }
+button[data-baseweb="tab"] { background: transparent !important; color: #8fb8d0 !important; }
+button[data-baseweb="tab"][aria-selected="true"] { color: #00f0ff !important; }
+/* metrics, alerts, tables, progress */
+div[data-testid="stMetric"] label, div[data-testid="stMetricLabel"] p { color: #6fb7d6 !important; }
+div[data-testid="stMetricValue"] { color: #e9fbff !important; }
+div[data-testid="stAlert"] { background: #07142a !important; border: 1px solid rgba(0,240,255,0.35);
+  color: #e9fbff !important; }
+div[data-testid="stDataFrame"], div[data-testid="stDataFrame"] > div, [data-testid="stTable"],
+[data-testid="stTable"] table, [data-testid="stTable"] th, [data-testid="stTable"] td {
+  background: #050a18 !important; color: #e9fbff !important; }
+div[data-testid="stProgress"] p { color: #e9fbff !important; }
+.stButton button, .stButton button p { background: #06142a !important; color: #00f0ff !important; }
+::-webkit-scrollbar { background: #02040a; width: 10px; }
+::-webkit-scrollbar-thumb { background: #0a2a4a; border-radius: 6px; }
 </style>
 """
 st.markdown(CSS, unsafe_allow_html=True)
